@@ -230,12 +230,12 @@
       bindControls();
     }
 
-    fetch("/api/gallery-images")
+    fetch("data/gallery.json", { cache: "no-store" })
       .then(function (r) {
         return r.json();
       })
       .then(function (data) {
-        var list = data && data.ok && Array.isArray(data.images) ? data.images : [];
+        var list = Array.isArray(data) ? data : [];
         buildFromList(list);
       })
       .catch(function () {
@@ -401,6 +401,25 @@
     var form = document.getElementById("reviews-form");
     if (!listEl || !form) return;
 
+    var STORAGE_KEY = "roofSite.reviews.v1";
+
+    function readLocalReviews() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        var arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function writeLocalReviews(list) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      } catch (e) {}
+    }
+
     function fmtDate(iso) {
       try {
         var d = new Date(iso);
@@ -476,20 +495,11 @@
       });
     }
 
-    fetch("/api/reviews")
-      .then(function (res) {
-        return res.json();
-      })
-      .then(function (data) {
-        if (data && data.ok && Array.isArray(data.reviews)) {
-          renderReviews(data.reviews);
-        } else {
-          renderReviews([]);
-        }
-      })
-      .catch(function () {
-        renderReviews([]);
-      });
+    var initial = readLocalReviews();
+    initial.sort(function (a, b) {
+      return String(b.createdAt).localeCompare(String(a.createdAt));
+    });
+    renderReviews(initial);
 
     var authorEl = document.getElementById("review-author");
     var ratingEl = document.getElementById("review-rating");
@@ -534,49 +544,25 @@
         ac.abort();
       }, 20000);
 
-      fetch("/api/reviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          author: author,
-          text: text,
-          rating: rating,
-        }),
-        signal: ac.signal,
-      })
-        .then(function (res) {
-          return res.json().then(function (data) {
-            return { ok: res.ok, data: data };
-          });
-        })
-        .then(function (result) {
-          if (result.ok && result.data && result.data.ok && result.data.review) {
-            setRevStatus("Спасибо! Отзыв опубликован.", "success");
-            form.reset();
-            if (emptyEl) emptyEl.setAttribute("hidden", "");
-            listEl.insertBefore(cardFromReview(result.data.review), listEl.firstChild);
-          } else {
-            var err =
-              (result.data && result.data.error) ||
-              "Не удалось сохранить отзыв. Попробуйте позже.";
-            setRevStatus(err, "error");
-          }
-        })
-        .catch(function (err) {
-          if (err && err.name === "AbortError") {
-            setRevStatus("Сервер не ответил вовремя. Попробуйте ещё раз.", "error");
-          } else {
-            setRevStatus(
-              "Нет связи с сервером. Запустите сайт через node server.js.",
-              "error"
-            );
-          }
-        })
-        .finally(function () {
-          clearTimeout(timeoutId);
-          submitBtn.disabled = false;
-          submitBtn.classList.remove("is-loading");
-        });
+      var list = readLocalReviews();
+      var item = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 10),
+        author: author,
+        text: text,
+        rating: Math.round(rating),
+        createdAt: new Date().toISOString(),
+      };
+      list.unshift(item);
+      writeLocalReviews(list.slice(0, 200));
+
+      setRevStatus("Спасибо! Отзыв опубликован.", "success");
+      form.reset();
+      if (emptyEl) emptyEl.setAttribute("hidden", "");
+      listEl.insertBefore(cardFromReview(item), listEl.firstChild);
+
+      clearTimeout(timeoutId);
+      submitBtn.disabled = false;
+      submitBtn.classList.remove("is-loading");
     });
   })();
 })();

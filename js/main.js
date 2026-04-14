@@ -369,7 +369,8 @@
         });
       })
       .then(function (result) {
-        if (result.ok) {
+        var formspreeOk = !!(result && result.ok && result.data && result.data.ok);
+        if (formspreeOk) {
           setStatus("Заявка отправлена. Мы свяжемся с вами в ближайшее время.", "success");
           form.reset();
         } else {
@@ -377,6 +378,14 @@
           if (result.data) {
             if (typeof result.data.error === "string" && result.data.error.trim()) err = result.data.error;
             if (typeof result.data.message === "string" && result.data.message.trim()) err = result.data.message;
+            if (Array.isArray(result.data.errors) && result.data.errors.length) {
+              err = result.data.errors
+                .map(function (e) {
+                  return (e && (e.message || e.field)) || "";
+                })
+                .filter(Boolean)
+                .join(". ");
+            }
           }
           setStatus(err, "error");
         }

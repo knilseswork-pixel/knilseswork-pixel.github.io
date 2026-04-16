@@ -156,7 +156,7 @@ code {
   left: 0;
   right: 0;
   z-index: 200;
-  padding: calc(1rem + env(safe-area-inset-top, 0px)) 0 1rem;
+  padding: calc(0.65rem + env(safe-area-inset-top, 0px)) 0 0.65rem;
   background: transparent;
   transition: background 0.3s var(--ease-out);
 }
@@ -198,7 +198,7 @@ code {
 
 .logo__img {
   display: block;
-  height: clamp(3rem, 7vw, 3.75rem);
+  height: clamp(2.6rem, 6.2vw, 3.2rem);
   width: auto;
   flex-shrink: 0;
   object-fit: contain;

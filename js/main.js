@@ -324,6 +324,18 @@
 
   if (!form || !statusEl || !submitBtn) return;
 
+  (function initCityPrefill() {
+    var cityEl = document.getElementById("city");
+    if (!cityEl) return;
+    try {
+      var params = new URLSearchParams(window.location.search || "");
+      var city = params.get("city");
+      if (city && String(city).trim()) {
+        cityEl.value = String(city).trim();
+      }
+    } catch (e) {}
+  })();
+
   var PHONE_PREFIX = "+7 ";
 
   function phoneLocalDigits(value) {
@@ -422,6 +434,7 @@
     fd.set("name", String((name || "").trim()));
     fd.set("phone", String((phone || "").trim()));
     fd.set("email", String((email || "").trim()));
+    fd.set("city", String(((document.getElementById("city") || {}).value || "").trim()));
 
     fetch(endpoint, {
       method: "POST",
